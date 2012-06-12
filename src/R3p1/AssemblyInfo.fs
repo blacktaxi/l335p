@@ -1,4 +1,4 @@
-﻿namespace L335p
+﻿namespace R3p1
 
 open System.Reflection
 open System.Runtime.CompilerServices
@@ -7,12 +7,12 @@ open System.Runtime.InteropServices
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[<assembly: AssemblyTitle("L335p")>]
+[<assembly: AssemblyTitle("R3p1")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyCompany("")>]
-[<assembly: AssemblyProduct("L335p")>]
-[<assembly: AssemblyCopyright("Copyright © Sergey Yavnyi 2012")>]
+[<assembly: AssemblyProduct("R3p1")>]
+[<assembly: AssemblyCopyright("Copyright © blacktaxi 2012")>]
 [<assembly: AssemblyTrademark("")>]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
@@ -21,7 +21,7 @@ open System.Runtime.InteropServices
 [<assembly: ComVisible(false)>]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[<assembly: Guid("ccece04d-b712-4ac6-a6b6-dead1f591fe7")>]
+[<assembly: Guid("819d4c92-e909-4310-9c55-9e657cc4a625")>]
 
 // Version information for an assembly consists of the following four values:
 //

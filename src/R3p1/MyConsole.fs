@@ -1,12 +1,15 @@
-﻿namespace L335p
+﻿namespace R3p1
 
 open System
 open System.Collections.Generic
+
+open L335p
 
 module MyConsole =
         
     let Run args =
 
+        printfn "%A" (Map.ofList [])
 //        let testString2 = "(let ((x 5) (y (+ x 1))) (+ x y))"
 //        let testString = "(if (= 5 5) (- 5 6))"
 //
@@ -25,10 +28,9 @@ module MyConsole =
             //"((lambda (x y z) (+ x y z)) 1 2 3)"
             |> Reader.readAll 
             |> List.ofSeq |> Parser.parseAll 
-            |> Seq.map (Runner.eval Builtins.defaultScope)
+            |> Seq.map (Runner.eval (Builtins.defaultScope))
         )
 
         //printfn "%A" (testString |> lexString |> parse |> eval testScope)
-
 
         Console.ReadLine() |> ignore

@@ -1,6 +1,5 @@
 ﻿namespace L335p
 
-open System
 open Parser
 open Runner
 
@@ -112,19 +111,19 @@ module Builtins =
         | other -> raise <| EvaluationException(sprintf "Expected two integer arguments to =, instead got %A" other)
 
     let defaultScope = 
-        [
-        // basic values
-        "true", BooleanValue true;
-        "false", BooleanValue false;
-        "=", FunctionValue funcEquals;
+        Map.ofList <| [
+            // basic values
+            "true", BooleanValue true;
+            "false", BooleanValue false;
+            "=", FunctionValue funcEquals;
 
-        // arithmetic
-        "+", FunctionValue funcAdd;
-        "*", FunctionValue funcMul;
-        "-", FunctionValue funcSub;
+            // arithmetic
+            "+", FunctionValue funcAdd;
+            "*", FunctionValue funcMul;
+            "-", FunctionValue funcSub;
 
-        // core functions
-        "let", FunctionValue funcLet;
-        "if", FunctionValue funcIf;
-        "lambda", FunctionValue funcLambda;
-        ] |> Map.ofList
+            // core functions
+            "let", FunctionValue funcLet;
+            "if", FunctionValue funcIf;
+            "lambda", FunctionValue funcLambda;
+        ]

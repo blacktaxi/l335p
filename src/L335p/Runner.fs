@@ -1,9 +1,6 @@
 ﻿namespace L335p
 
 open System
-open System.Collections.Generic
-open System.Text.RegularExpressions
-
 open Parser
 
 module Runner =
