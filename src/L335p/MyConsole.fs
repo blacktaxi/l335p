@@ -3,10 +3,6 @@
 open System
 open System.Collections.Generic
 
-open Reader
-open Parser
-open Runner
-
 module MyConsole =
         
     let Run args =
@@ -18,16 +14,18 @@ module MyConsole =
 
         printfn "%A" (
             //"(let ((func (lambda (a b) (+ a b)))) (func 2 2))"
-            "(let ((fac (lambda (x) 
-                            (if (= x 1) 
-                                1 
-                                (* (fac (- x 1)) x))))) 
-                  (fac 30))
-            "
+            "(if (= 5 5) (- 5 6))"
+//            "(let ((fac (lambda (x) 
+//                            (if (= x 1) 
+//                                1 
+//                                (* (fac (- x 1)) x))))) 
+//                  (fac 30))
+//            "
 //            "(let ((fac (lambda (x) (if (= x 1) 1 (* (fac (- x 1)) x))))) (+ 2 2))"
-            |> readAll 
-            |> List.ofSeq |> parseAll 
-            |> Seq.map (eval builtins)
+            //"((lambda (x y z) (+ x y z)) 1 2 3)"
+            |> Reader.readAll 
+            |> List.ofSeq |> Parser.parseAll 
+            |> Seq.map (Runner.eval Builtins.defaultScope)
         )
 
         //printfn "%A" (testString |> lexString |> parse |> eval testScope)

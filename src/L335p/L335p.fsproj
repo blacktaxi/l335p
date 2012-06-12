@@ -43,6 +43,7 @@
     <Compile Include="Reader.fs" />
     <Compile Include="Parser.fs" />
     <Compile Include="Runner.fs" />
+    <Compile Include="Builtins.fs" />
     <Compile Include="MyConsole.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config">
