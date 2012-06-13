@@ -2,84 +2,91 @@
 
 open System
 open Parser
+open Utils
 
 module Runner =
 
-    type EvaluationException = Exception
+    // TODO add evaluation context information to errors
+    type EvaluationException(msg) = inherit Exception(msg)
 
+    type InvalidReferenceException(name, scope) =
+        inherit EvaluationException(sprintf "Reference %s was not found in scope %s" name scope)
+
+    type AssertionException(expected, actual) =
+        inherit EvaluationException(sprintf "Expected %s, instead got %s" expected actual)
+
+    type TypeAssertionException(expectedType, actualValue) =
+        inherit AssertionException(sprintf "a value of type %s" expectedType, actualValue)
+
+    /// Code as data!
     type FunctionArg = SyntaxNode
 
+    /// Interpreter scope is a map from name (symbol) to InterpreterValue
     and InterpreterScope = Map<string, InterpreterValue>
 
+    /// A function that can behave like what is called a "macro" in Lisp --
+    /// it takes arguments unevaluated -- raw SyntaxNode's.
     and InterpreterFunction = InterpreterScope -> FunctionArg list -> InterpreterValue
 
+    /// A value that can be evaluated or passed as function argument.
     and InterpreterValue =
+    /// A lazily-evaluated value.
+    | DelayedValue of Lazy<InterpreterValue>
+    | FunctionValue of InterpreterFunction
+    | NothingValue
     | IntegerValue of int
     | StringValue of string
     | BooleanValue of bool
-    | NothingValue
-    | DelayedValue of (unit -> InterpreterValue)
-    | FunctionValue of InterpreterFunction
+    // TODO consider doing the following:
+    //| DelayedValue of InterpreterScope * SyntaxNode
+    // This will allow to track closures explicitly.
+    // TODO do a NumericValue of double (or something better?) instead?
 
     /// Dereferences `name` in `scope`.
     let dereference name scope =
         match Map.tryFind name scope with
         | Some value -> value
-        | None -> raise <| EvaluationException(sprintf "Reference %s not found in scope %A" name scope)
+        | None -> raise <| InvalidReferenceException(name, toStr scope)
 
-    /// Calls a defined function `func` with arguments `args` in `scope`.
-    /// Return type is same as IntepreterFunction's.
-    let callFunc (func: InterpreterFunction) scope (args: SyntaxNode list) =
-        func scope args
-
-    let maybeForce value =
+    /// Forces a DelayedValue evaluation until it evaluates to instant
+    /// value. If the argument is not DelayedValue, does nothing.
+    /// Never use this to return values. Only force DelayedValue evaluation
+    /// at points where you actually need that value.
+    let rec maybeForce (value: InterpreterValue): InterpreterValue =
         match value with
-        | DelayedValue v -> v()
+        | DelayedValue v -> maybeForce (v.Force())
         | any -> any
+
+    //let maybeForce value = let (MaybeForced v) = value in v
+
+    let expectIntegerValue x = 
+        match maybeForce x with 
+        | IntegerValue v -> v 
+        | other -> raise <| TypeAssertionException("integer", toStr other) 
                
     /// Evaluates given node in scope. Returns InterpreterValue.
-    let rec eval (scope: InterpreterScope) (node: SyntaxNode): InterpreterValue =
-        match node with
-        | StringConstant value -> StringValue(value)
-        | IntegerConstant value -> IntegerValue(Int32.Parse value)
-        | Reference name -> dereference name scope
-//        | ListForm (Reference name::args) ->
-//            match maybeForce (dereference name scope) with
-//            | FunctionValue func -> callFunc func scope args
-//            | other -> raise <| EvaluationException(sprintf "%s is not a function at %A -- it is a %A" name node other)
-        | ListForm (expr::args) ->
-            match eval scope expr with
-            | FunctionValue func -> callFunc func scope args
-            | other -> raise <| EvaluationException(sprintf "%A is not a function at %A -- it is a %A" expr node other)
-        | _ -> raise <| EvaluationException(sprintf "Don't know how to evaluate %A" node)
+    let rec eval (scope: InterpreterScope) (node: SyntaxNode): InterpreterValue = 
+        /// Calls a defined function `func` with arguments `args` in `scope`.
+        /// Return type is same as IntepreterFunction's.
+        let callFunc (func: InterpreterFunction) scope (args: SyntaxNode list) =
+            // We don't want to evaluate function arguments here because some
+            // functions might want the syntax tree, not the value.
+            func scope args
+
+        // TODO probably can make constant and reference evaluation eager without
+        // any consequences
+        lazy (
+            match node with
+            | StringConstant value -> StringValue value
+            | IntegerConstant value -> IntegerValue value
+            | Reference name -> dereference name scope
+            | ListForm (expr::args) ->
+                match maybeForce <| eval scope expr with
+                // Note how func, scope and args are captured within current closure.
+                // This should probably be done in a more explicit way, like returning
+                // a DelayedValue of InterpreterScope * SyntaxNode.
+                | FunctionValue func -> callFunc func scope args
+                | other -> raise <| AssertionException("a function", toStr other)
+            | _ -> raise <| EvaluationException(sprintf "Don't know how to evaluate %A" node)
+        ) |> DelayedValue
                 
-    /// Creates a lazily evaluated function argument from a syntax node.
-    let rec makeDelayedValue scope node =
-        let value: ref<Option<InterpreterValue>> = ref None
-        let force () =
-            match !value with
-            | None -> value := Some (eval scope node); (!value).Value
-            | Some v -> v
-        in
-            DelayedValue force
-
-//    /// Evaluates function argument.
-//    let getArgValue (scope: InterpreterScope) (arg: FunctionArg): InterpreterValue = eval scope arg
-    let (|MaybeForced|) value =
-        match value with
-        | DelayedValue v -> v()
-        | any -> any
-
-    let getIntegerValue scope name =
-        match eval scope name with
-        | MaybeForced (IntegerValue i) -> i
-        | other -> raise <| EvaluationException(sprintf "Expected integer value in %A, instead got %A" name other)
-
-//    let getValue<'valueType> unbox scope name =
-//        match eval scope name with
-//        | MaybeForced i -> match i with
-//                           | 'valueType v -> v
-//        | other -> raise <| EvaluationException(sprintf "Expected value of type %A in %A, instead got %A" "hui" name other)
-
-    /// "Built-in" functions and values, special forms, etc.
-

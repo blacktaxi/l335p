@@ -9,15 +9,18 @@ module MyConsole =
         
     let Run args =
 
-        printfn "%A" (Map.ofList [])
 //        let testString2 = "(let ((x 5) (y (+ x 1))) (+ x y))"
 //        let testString = "(if (= 5 5) (- 5 6))"
 //
 //        printfn "%A" (List.ofSeq (lexAll testString))
 
         printfn "%A" (
+            //"(= (+ 1 500) 299)"
+            "(if (= 2 2) (print 1))"
+            //"(print 5)"
             //"(let ((func (lambda (a b) (+ a b)))) (func 2 2))"
-            "(if (= 5 5) (- 5 6))"
+            //"(let ((f1 (lambda (x) (+ x 1))) (f2 (lambda (x) (* x 2))) (f3 (lambda (x) (f1 (f2 x))))) (f3 1))"
+//            "(if (= 5 5) (- 5 6))"
 //            "(let ((fac (lambda (x) 
 //                            (if (= x 1) 
 //                                1 
@@ -28,7 +31,7 @@ module MyConsole =
             //"((lambda (x y z) (+ x y z)) 1 2 3)"
             |> Reader.readAll 
             |> List.ofSeq |> Parser.parseAll 
-            |> Seq.map (Runner.eval (Builtins.defaultScope))
+            |> Seq.map (Runner.maybeForce << Runner.eval (Builtins.defaultScope))
         )
 
         //printfn "%A" (testString |> lexString |> parse |> eval testScope)

@@ -12,10 +12,10 @@ module Reader =
         //| Unquote
         //| UnquoteSplicing
         | StringLiteral of string
-        | IntegerLiteral of string
+        | IntegerLiteral of int
         | Symbol of string
 
-    type LexerException = Exception
+    type ReaderException(msg) = inherit Exception(msg)
         
     /// Tokenizes some characters from 'input', returning an Option<Lexeme> and the
     /// rest of the string.
@@ -27,13 +27,13 @@ module Reader =
                     else None
 
         match input with
-            | Re "[\r\n\s]+"              (p, r) -> None, r
-            | Re "\("                     (p, r) -> Some OpenParen, r
-            | Re "\)"                     (p, r) -> Some CloseParen, r
-            | Re "\".*?\""                (p, r) -> Some (StringLiteral p), r
-            | Re "\d+"                    (p, r) -> Some (IntegerLiteral p), r
-            | Re "[^\(\)\s\d][^\(\)\s]*"  (p, r) -> Some (Symbol p), r
-            | _ -> raise <| LexerException(sprintf "Couldn't lex this: %s" input)
+        | Re "[\r\n\s]+"              (p, r) -> None, r
+        | Re "\("                     (p, r) -> Some OpenParen, r
+        | Re "\)"                     (p, r) -> Some CloseParen, r
+        | Re "\".*?\""                (p, r) -> Some (StringLiteral p), r
+        | Re "\d+"                    (p, r) -> Some (IntegerLiteral (Int32.Parse p)), r
+        | Re "[^\(\)\s\d][^\(\)\s]*"  (p, r) -> Some (Symbol p), r
+        | _ -> raise <| ReaderException(sprintf "Couldn't read \"%s\"" input)
 
     /// Returns a sequence of Lexemes tokenized from string
     let rec readAll input = 
