@@ -11,6 +11,12 @@ module List =
             | _ -> []
         }
 
+module Map =
+
+    /// Creates a new map, which consists of keys and values from `map` appended with
+    /// keys and values from second map `withWhat`.
+    let update map withWhat = Map.fold (fun acc key value -> Map.add key value acc) map withWhat
+
 module Utils = 
 
     // TODO there should be a better way...
