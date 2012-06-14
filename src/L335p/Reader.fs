@@ -21,24 +21,38 @@ module Reader =
     /// rest of the string.
     let readOne input: Option<Lexeme> * string =
         let (|Re|_|) pattern input =
-            let m = Regex.Match(input, sprintf "^(?<parsed>%s)(?<rest>.*)$" pattern) in
+            let m = Regex.Match(input, pattern) in
                 if m.Success
                     then Some (m.Groups.Item("parsed").Value, m.Groups.Item("rest").Value)
                     else None
 
+        /// Creates a generic term matching pattern.
+        let genP s = sprintf "^(?<parsed>%s)(?<rest>.*)$" s
+        
         match input with
-        // comment
-        | Re ";.*[\r\n]?"             (p, r) -> None, r
-        // whitespace
-        | Re "[\r\n\s]+"              (p, r) -> None, r
+        // Ignored stuff
+        | Re (genP ";.*[\r\n]?") // comment
+            (p, r) -> None, r
+        | Re (genP "[\r\n\s]+") // whitespace
+            (p, r) -> None, r
+
         // parens
-        | Re "\("                     (p, r) -> Some OpenParen, r
-        | Re "\)"                     (p, r) -> Some CloseParen, r
+        | Re (genP "\(") (p, r) -> Some OpenParen, r
+        | Re (genP "\)") (p, r) -> Some CloseParen, r
+
         // literals
-        | Re "\".*?\""                (p, r) -> Some (StringLiteral p), r
-        | Re "\d+"                    (p, r) -> Some (IntegerLiteral (Int32.Parse p)), r
-        // symbol
-        | Re "[^\(\)\s\d][^\(\)\s]*"  (p, r) -> Some (Symbol p), r
+        | Re "^\"(?<parsed>.*?)\"(?<rest>.*)$" // String
+            (p, r) -> Some (StringLiteral p), r
+        | Re (genP "-?\d+") // Integer
+            (p, r) -> Some (IntegerLiteral (Int32.Parse p)), r
+
+        // Symbols
+        | Re "^`(?<parsed>[^\r\n]*)`(?<rest>.*)$" // Quoted (a-la F#)
+            (p, r) -> Some (Symbol p), r
+        | Re (genP "[^\(\)\s\d][^\(\)\s]*") // Regular. Can't contain special chars like parens, and can't start with a digit.
+            (p, r) -> Some (Symbol p), r
+        
+        //
         | _ -> raise <| ReaderException(sprintf "Couldn't read \"%s\"" input)
 
     /// Returns a sequence of Lexemes tokenized from string
