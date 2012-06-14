@@ -1,5 +1,6 @@
 ﻿namespace L335p
 
+open System
 open Parser
 open Runner
 open Utils
@@ -9,40 +10,24 @@ module Builtins =
     type ArgumentAssertionException(expected, actual) =
         inherit AssertionException(expected, actual)
 
-//    let funcLambda scope nodes =
-//        match nodes with
-//        | [ListForm parameters; body] ->
-//            let closure = scope
-//
-//            /// Creates a new map, which consists of keys and values from `map` appended with
-//            /// keys and values from second map `withWhat`.
-//            let update map withWhat = Map.fold (fun acc key value -> Map.add key value acc) map withWhat
-//
-//            let parameterName p =
-//                match p with 
-//                | Reference name -> name
-//                | other -> raise <| EvaluationException(sprintf "Expected a symbol, instead got %A" other)
-//            in
-//            /// A list of function parameter names.
-//            let paramNames = List.map parameterName parameters
-//
-//            /// Creates a <name, value> map for positional arguments, "binding" each argument value to
-//            /// respective parameter name, positionally.
-//            let positionalArgsMap names values = Map.ofList <| List.zip names values
-//
-//            /// Binds given `values` to their respective positional parameter names in `scope`.
-//            /// Returns new scope with all the arguments bound.
-//            let bindArgs (scope: InterpreterScope) values = 
-//                // lambda takes evaluated code as arguments, so we evaluate it.
-//                let argValues = List.map (eval scope) values in
-//                update scope (positionalArgsMap paramNames argValues)
-//
-//            fun (scope: InterpreterScope) (args: FunctionArg list) ->
-//                eval (bindArgs closure args) body
-//
-//            |> FunctionValue
-//                                        
-//        | other -> raise <| EvaluationException(sprintf "Expected (lambda (args) body), instead got %A" other)
+    let funcLambda scope nodes =
+        match nodes with
+        | [ListForm parametersExpr; lambdaBody] ->
+
+            let lambdaClosure = scope
+
+            let parameterNames = List.map (fun e -> match e with | Reference n -> n | other -> raise <| ArgumentAssertionException("a reference", toStr other)) parametersExpr
+
+            let withBoundParameters parameterValues scope =
+                List.fold (fun currentScope (name, value) -> Map.add name value currentScope) scope (List.zip parameterNames parameterValues)
+
+            fun scope nodes ->
+                let args = List.map (eval scope) nodes
+                let lambdaScope = withBoundParameters args lambdaClosure
+
+                eval lambdaScope lambdaBody
+            |> FunctionValue
+        | other -> raise <| ArgumentAssertionException("(lambda (p1 p2 ...) body)", toStr other)
 
     let funcIf scope (nodes: FunctionArg list) =
         match nodes with
@@ -58,44 +43,51 @@ module Builtins =
             | _ -> NothingValue
         | other -> raise <| ArgumentAssertionException("(if (condition) body [else-body])", toStr other)
 
-//    let funcLet scope nodes =
-//        match nodes with
-//        // expect (let (bindings) body)
-//        | [ListForm bindings; body] ->
-//            // fold bindings
-//            let finalScope =
-//                /// Takes a binding expression, evaluates it's second element (value expression)
-//                /// in `currentScope` and returns a new scope where the binding expression's first 
-//                /// element (name) is bound to the evaluated value.
-//                let bindOne (currentScope: InterpreterScope) (bindingExpr: SyntaxNode) =
-//                    match bindingExpr with
-//                        // expect (name value)
-//                        | ListForm [Reference name; expr] ->
-//                            let selfRef = ref None
-//                            /// Add a DelayedValue "stub" to "self" to currentScope that raises and 
-//                            /// exception upon forcing. The value doesn't exist before this binding is 
-//                            /// complete. After that it is OK to force the value out of it.
-//                            let withGhostReference =
-//                                Map.add 
-//                                    name
-//                                    (DelayedValue 
-//                                        (fun () ->
-//                                            match !selfRef with
-//                                            | Some x -> x
-//                                            | _ -> raise <| EvaluationException(sprintf "Can not evaluate %A before it is fully defined." name)))
-//                                    currentScope
-//
-//                            let evaluated = eval withGhostReference expr
-//                            selfRef := Some evaluated
-//                            // evaluate binding value and add it to current scope
-//                            let evaluated = eval currentScope expr in
-//                            Map.add name evaluated currentScope
-//                        | other -> raise <| EvaluationException(sprintf "Expected (name value) in a let binding, instead got %A" other)
-//                in
-//                    List.fold bindOne scope bindings
-//            in
-//                eval finalScope body
-//        | other -> raise <| EvaluationException(sprintf "Expected (let bindings body), instead got %A" other)
+    /// Takes list of pairs of bindings, sequentially adds them to
+    /// current scope, and then executes body in resulting scope.
+    /// (let ((name1 value1) (name2 value2) ...) (body))
+    let funcLet scope nodes =
+        match nodes with
+        | [ListForm bindings; body] ->
+            let bindingfoldfn currentScope binding =
+                match binding with
+                | ListForm [nameExpr; valueExpr] ->
+                    // evaluate the name. why? because names are not necessarily
+                    // plain references (symbols) -- they can be a function calls
+                    // that evaluate to references.
+                    //let name = maybeForce <| eval currentScope nameExpr
+
+                    // TODO need to evaluate the name! will have to introduce a new
+                    // kind of value -- a ReferenceValue or something.
+                    let name = nameExpr
+
+                    match name with
+                    | Reference n ->
+                        // create a "ghost" value of this same binding.
+                        // this is needed so the binding can refer to itself when it is
+                        // evaluated. there is probably a better way to do this.
+                        // TODO I think this doesn't really work :(
+                        let realValue = ref None
+                        let ghostValue =
+                            lazy (
+                                match !realValue with 
+                                | Some v -> v 
+                                | None -> raise <| EvaluationException(sprintf "The value of %s is not known yet (not evaluated), and therefore can not be referenced." n)
+                            ) |> DelayedValue
+                    
+                        // don't force the binding value -- we don't know if we
+                        // need it yet.
+                        let value = eval (Map.add n ghostValue currentScope) valueExpr
+                        realValue := Some value
+
+                        Map.add n value currentScope
+                    | other -> raise <| ArgumentAssertionException("a reference", toStr other)
+                | other -> raise <| ArgumentAssertionException("(name value)", toStr other)
+            
+            let scopeWithBindings = List.fold bindingfoldfn scope bindings
+
+            eval scopeWithBindings body
+        | other -> raise <| ArgumentAssertionException("(let ((name value) ...) body)", toStr other)
         
     /// Wraps a function that takes InterpreterValues as args into InterpreterFunction.
     let nonMacro func = (fun scope nodes -> func (List.map (eval scope) nodes))
@@ -143,9 +135,9 @@ module Builtins =
             "-", FunctionValue funcSub;
 
             // core functions
-//            "let", FunctionValue funcLet;
+            "let", FunctionValue funcLet;
             "if", FunctionValue funcIf;
-//            "lambda", FunctionValue funcLambda;
+            "lambda", FunctionValue funcLambda;
 
             // etc
             "print", FunctionValue funcPrint;

@@ -10,7 +10,7 @@ module Runner =
     type EvaluationException(msg) = inherit Exception(msg)
 
     type InvalidReferenceException(name, scope) =
-        inherit EvaluationException(sprintf "Reference %s was not found in scope %s" name scope)
+        inherit EvaluationException(sprintf "Reference \"%s\" was not found in scope %s" name scope)
 
     type AssertionException(expected, actual) =
         inherit EvaluationException(sprintf "Expected %s, instead got %s" expected actual)
@@ -37,6 +37,7 @@ module Runner =
     | IntegerValue of int
     | StringValue of string
     | BooleanValue of bool
+    //| ReferenceValue of string
     // TODO consider doing the following:
     //| DelayedValue of InterpreterScope * SyntaxNode
     // This will allow to track closures explicitly.
