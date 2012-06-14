@@ -27,11 +27,17 @@ module Reader =
                     else None
 
         match input with
+        // comment
+        | Re ";.*[\r\n]?"             (p, r) -> None, r
+        // whitespace
         | Re "[\r\n\s]+"              (p, r) -> None, r
+        // parens
         | Re "\("                     (p, r) -> Some OpenParen, r
         | Re "\)"                     (p, r) -> Some CloseParen, r
+        // literals
         | Re "\".*?\""                (p, r) -> Some (StringLiteral p), r
         | Re "\d+"                    (p, r) -> Some (IntegerLiteral (Int32.Parse p)), r
+        // symbol
         | Re "[^\(\)\s\d][^\(\)\s]*"  (p, r) -> Some (Symbol p), r
         | _ -> raise <| ReaderException(sprintf "Couldn't read \"%s\"" input)
 
