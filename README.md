@@ -4,7 +4,6 @@ l335p
 A Lisp-like interpreter.
 
 TODO:
-* REPL :)
 * multi-line strings can't be lexed!
 * recursive definitions are not working! and general code-smell around funcLet
 * see if I can refactor built-in function definitions -- maybe make call arguments check common
