@@ -9,10 +9,7 @@ module MyConsole =
         
     let Run args =
 
-//        let testString2 = "(let ((x 5) (y (+ x 1))) (+ x y))"
-//        let testString = "(if (= 5 5) (- 5 6))"
-//
-//        printfn "%A" (List.ofSeq (lexAll testString))
+        Repl.startREPL ()
 
         printfn "%A" (
             //"(= (+ 1 500) 299)"
