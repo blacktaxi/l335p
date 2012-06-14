@@ -5,7 +5,7 @@ open L335p
 
 module Repl =
 
-    let startREPL () =
+    let startREPL builtinScope =
         let prompt () =
             Console.Write("l3 - ")
             Console.ReadLine()
@@ -21,7 +21,7 @@ module Repl =
                 |> Reader.readAll 
                 |> List.ofSeq 
                 |> Parser.parseAll 
-                |> Seq.map (Runner.maybeForce << Runner.eval (Builtins.defaultScope))
+                |> Seq.map (Runner.maybeForce << Runner.eval builtinScope)
             )
 
         printfn "Welcome to R3p1. Type 'quit' to quit.\n\n"
