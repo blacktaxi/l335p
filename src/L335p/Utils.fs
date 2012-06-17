@@ -8,8 +8,15 @@ module List =
         seq {
             match l with
             | x::xs when p x -> yield x; yield! takeWhile p xs
-            | _ -> []
+            | _ -> yield! Seq.empty // should be a better way...
         }
+
+module Seq =
+
+    let tail s = Seq.skip 1 s
+
+    let destructure s =
+        if Seq.isEmpty s then (None, Seq.empty) else (Some <| Seq.head s, tail s)
 
 module Map =
 
