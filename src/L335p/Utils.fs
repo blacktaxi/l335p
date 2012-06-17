@@ -22,7 +22,13 @@ module Map =
 
     /// Creates a new map, which consists of keys and values from `map` appended with
     /// keys and values from second map `withWhat`.
-    let update map withWhat = Map.fold (fun acc key value -> Map.add key value acc) map withWhat
+    let update (map: Map<'a, 'b>) (withWhat: Map<'a, 'b>) = Map.fold (fun acc key value -> Map.add key value acc) map withWhat
+
+    /// Merges several maps into one.
+    let rec merge (map: Map<'a, 'b>) (maps: List<Map<'a, 'b>>) =
+        match maps with
+        | one::others -> merge (update map one) others
+        | [] -> map
 
 module Utils = 
 
