@@ -4,7 +4,6 @@ open System
 open System.Collections.Generic
 
 open L335p
-open Utils
 
 module MyConsole =
         
@@ -44,5 +43,3 @@ module MyConsole =
 //        )
 
         //printfn "%A" (testString |> lexString |> parse |> eval testScope)
-
-        Console.ReadLine() |> ignore
