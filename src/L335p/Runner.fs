@@ -40,12 +40,6 @@ module Runner =
     | SymbolVal of string
     // TODO do a NumericValue of double (or something better?) instead?
 
-    /// Dereferences `name` in `scope`.
-    let dereference name scope =
-        match Map.tryFind name scope with
-        | Some value -> value
-        | None -> raise <| InvalidReferenceException(name, toStr scope)
-
     /// Forces a DelayedValue evaluation until it evaluates to instant
     /// value. If the argument is not DelayedValue, does nothing.
     /// Never use this to return values. Only force DelayedValue evaluation
@@ -54,6 +48,12 @@ module Runner =
         match value with
         | DelayedVal v -> force (v.Force())
         | any -> any
+
+    /// Dereferences `name` in `scope`.
+    let dereference name scope =
+        match Map.tryFind name scope with
+        | Some value -> force value
+        | None -> raise <| InvalidReferenceException(name, toStr scope)
 
     let expectIntegerValue x = 
         match force x with 
