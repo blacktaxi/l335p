@@ -16,7 +16,7 @@ module Seq =
     let tail s = Seq.skip 1 s
 
     let destructure s =
-        if Seq.isEmpty s then (None, Seq.empty) else (Some <| Seq.head s, tail s)
+        if Seq.isEmpty s then (None, seq []) else (Some <| Seq.head s, tail s)
 
 module Map =
 

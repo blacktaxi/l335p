@@ -13,7 +13,7 @@ module Reader =
         //| UnquoteSplicing
         | StringLiteral of string
         | IntegerLiteral of int
-        | Symbol of string
+        | Name of string
 
     type ReaderException(msg) = inherit Exception(msg)
         
@@ -23,11 +23,11 @@ module Reader =
         let (|Re|_|) pattern input =
             let m = Regex.Match(input, pattern) in
                 if m.Success
-                    then Some (m.Groups.Item("parsed").Value, m.Groups.Item("rest").Value)
+                    then Some (m.Groups.Item("value").Value, m.Groups.Item("rest").Value)
                     else None
 
         /// Creates a generic term matching pattern.
-        let genP s = sprintf "^(?<parsed>%s)(?<rest>.*)$" s
+        let genP s = sprintf "^(?<value>%s)(?<rest>.*)$" s
         
         match input with
         // Ignored stuff
@@ -41,16 +41,16 @@ module Reader =
         | Re (genP "\)") (p, r) -> Some CloseParen, r
 
         // literals
-        | Re "^\"(?<parsed>.*?)\"(?<rest>.*)$" // String
+        | Re "^\"(?<value>.*?)\"(?<rest>.*)$" // String
             (p, r) -> Some (StringLiteral p), r
         | Re (genP "-?\d+") // Integer
             (p, r) -> Some (IntegerLiteral (Int32.Parse p)), r
 
         // Symbols
-        | Re "^`(?<parsed>[^\r\n]*)`(?<rest>.*)$" // Quoted (a-la F#)
-            (p, r) -> Some (Symbol p), r
+        | Re "^`(?<value>[^\r\n]*)`(?<rest>.*)$" // Quoted (a-la F#)
+            (p, r) -> Some (Name p), r
         | Re (genP "[^\(\)\s\d][^\(\)\s]*") // Regular. Can't contain special chars like parens, and can't start with a digit.
-            (p, r) -> Some (Symbol p), r
+            (p, r) -> Some (Name p), r
         
         //
         | _ -> raise <| ReaderException(sprintf "Couldn't read \"%s\"" input)

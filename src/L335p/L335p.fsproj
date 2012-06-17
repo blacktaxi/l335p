@@ -40,8 +40,8 @@
   <ItemGroup>
     <Compile Include="Utils.fs" />
     <Compile Include="Reader.fs" />
-    <Compile Include="Parser.fs" />
     <Compile Include="Runner.fs" />
+    <Compile Include="Parser.fs" />
     <Compile Include="Builtins.fs" />
   </ItemGroup>
   <ItemGroup>

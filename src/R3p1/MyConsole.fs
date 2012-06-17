@@ -10,7 +10,7 @@ module MyConsole =
     let Run args =
 
         let evalSingleExpr scope input =
-            match input |> Reader.readAll |> List.ofSeq |> Parser.parseAll |> List.ofSeq with
+            match input |> Reader.readAll |> Parser.parseAll |> List.ofSeq with
             | [expr] -> Runner.eval scope expr
             | _ -> failwith "Should be a single expression."
 

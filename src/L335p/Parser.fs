@@ -2,20 +2,15 @@
 
 open System
 open Reader
+open Runner
 
 module Parser =
-
-    type SyntaxNode =
-    | IntegerConstant of int
-    | StringConstant of string
-    | Reference of string
-    | ListForm of SyntaxNode list
 
     type ParserException(msg) = inherit Exception(msg)
 
     /// Parses some lexemes from input list. Returns a syntax node that
     /// represents parsed lexemes and the rest of lexeme list.
-    let rec parseOne (lexemes: Lexeme seq) : SyntaxNode * Lexeme seq =
+    let rec parseOne (lexemes: Lexeme seq) : L3Value * Lexeme seq =
         match Seq.destructure lexemes with
         | Some OpenParen, rest -> 
             let rec read lexemes stack =
@@ -26,12 +21,12 @@ module Parser =
                         read restLexemes (node :: stack)
 
             let stack, restLexemes = read rest [] in
-                ListForm (List.rev stack), restLexemes
+                ListVal (List.rev stack), restLexemes
         | Some CloseParen, rest -> raise <| ParserException(sprintf "Unexpected ')' at %A" lexemes)
-        | Some (StringLiteral s), rest -> StringConstant s, rest
-        | Some (IntegerLiteral s), rest -> IntegerConstant s, rest
-        | Some (Symbol s), rest -> Reference s, rest
-        | _, _ -> raise <| ParserException(sprintf "Don't know how to parse %A" lexemes)
+        | Some (StringLiteral s), rest -> StringVal s, rest
+        | Some (IntegerLiteral s), rest -> IntegerVal s, rest
+        | Some (Name s), rest -> SymbolVal s, rest
+        | other -> raise <| ParserException(sprintf "Don't know how to parse %A" other)
 
     /// Returns a sequence of parsed lexemes.
     let rec parseAll (lexemes: Lexeme seq) =

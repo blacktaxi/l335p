@@ -12,35 +12,56 @@ module Builtins =
 
     let funcLambda scope nodes =
         match nodes with
-        | [ListForm parametersExpr; lambdaBody] ->
+        | [ListVal parametersExpr; lambdaBody] ->
 
-            let lambdaClosure = scope
+            // Parameter name strings, from given lambda signature.
+            let parameterNames = 
+                List.map 
+                    (fun e -> 
+                        match e with 
+                        | SymbolVal n -> n 
+                        | other -> raise <| ArgumentAssertionException("a symbol", toStr other)) 
+                    parametersExpr
 
-            let parameterNames = List.map (fun e -> match e with | Reference n -> n | other -> raise <| ArgumentAssertionException("a reference", toStr other)) parametersExpr
-
+            // Maps provided arguments to respective parameter names in given scope
             let withBoundParameters parameterValues scope =
-                List.fold (fun currentScope (name, value) -> Map.add name value currentScope) scope (List.zip parameterNames parameterValues)
+                List.fold 
+                    (fun currentScope (name, value) -> 
+                        Map.add name value currentScope) 
+                    scope 
+                    (List.zip parameterNames parameterValues)
 
+            // A scope where the lambda was defined. Not to confuse with the scope
+            // where it is executed.
+            let lambdaClosure = scope
+            
+            // the result function
             fun scope nodes ->
-                let args = List.map (eval scope) nodes
+                // Here we evaluate parameter values -- the arguments.
+                // Lazy evaluation function is used to delay the actual evaluation
+                // until the argument is actually used.
+                // TODO it's not yet clearly defined how is this supposed to work...
+                let args = List.map (lazyEval scope) nodes
+
+                // Add arguments to the scope.
                 let lambdaScope = withBoundParameters args lambdaClosure
 
                 eval lambdaScope lambdaBody
-            |> FunctionValue
+            |> FunctionVal
         | other -> raise <| ArgumentAssertionException("(lambda (p1 p2 ...) body)", toStr other)
 
-    let funcIf scope (nodes: FunctionArg list) =
+    let funcIf scope (nodes: LeFunctionArg list) =
         match nodes with
         // expect (if (condition) body else-body)
         | [condition; body; elseBody] ->
-            match maybeForce <| eval scope condition with
-            | BooleanValue true -> eval scope body
+            match eval scope condition with
+            | BooleanVal true -> eval scope body
             | _ -> eval scope elseBody
         // expect (if (condition) body)
         | [condition; body] ->
-            match maybeForce <| eval scope condition with
-            | BooleanValue true -> eval scope body
-            | _ -> NothingValue
+            match eval scope condition with
+            | BooleanVal true -> eval scope body
+            | _ -> NothingVal
         | other -> raise <| ArgumentAssertionException("(if (condition) body [else-body])", toStr other)
 
     /// Takes list of pairs of bindings, sequentially adds them to
@@ -48,10 +69,10 @@ module Builtins =
     /// (let ((name1 value1) (name2 value2) ...) (body))
     let funcLet scope nodes =
         match nodes with
-        | [ListForm bindings; body] ->
+        | [ListVal bindings; body] ->
             let bindingfoldfn currentScope binding =
                 match binding with
-                | ListForm [nameExpr; valueExpr] ->
+                | ListVal [nameExpr; valueExpr] ->
                     // evaluate the name. why? because names are not necessarily
                     // plain references (symbols) -- they can be a function calls
                     // that evaluate to references.
@@ -62,7 +83,7 @@ module Builtins =
                     let name = nameExpr
 
                     match name with
-                    | Reference n ->
+                    | SymbolVal n ->
                         // create a "ghost" value of this same binding.
                         // this is needed so the binding can refer to itself when it is
                         // evaluated. there is probably a better way to do this.
@@ -73,7 +94,7 @@ module Builtins =
                                 match !realValue with 
                                 | Some v -> v 
                                 | None -> raise <| EvaluationException(sprintf "The value of %s is not known yet (not evaluated), and therefore can not be referenced." n)
-                            ) |> DelayedValue
+                            ) |> DelayedVal
                     
                         // don't force the binding value -- we don't know if we
                         // need it yet.
@@ -97,48 +118,48 @@ module Builtins =
         fun args ->
             match List.map expectIntegerValue args with
             // unary
-            | [one] -> IntegerValue (- one)
+            | [one] -> IntegerVal (- one)
             // binary
-            | [first; second] -> IntegerValue (first - second)
+            | [first; second] -> IntegerVal (first - second)
             | other -> raise <| ArgumentAssertionException("(- x) or (- x y)", toStr other)
 
     let (NonMacro funcMul) =
-        fun args -> IntegerValue (Seq.reduce (*) <| Seq.map expectIntegerValue args)
+        fun args -> IntegerVal (Seq.reduce (*) <| Seq.map expectIntegerValue args)
 
     let (NonMacro funcAdd) = 
-        fun args -> IntegerValue (Seq.sum <| Seq.map expectIntegerValue args)
+        fun args -> IntegerVal (Seq.sum <| Seq.map expectIntegerValue args)
 
     let (NonMacro funcEquals) = 
         fun args ->
             match List.map expectIntegerValue args with
             | [left; right] ->
-                BooleanValue (left = right)
+                BooleanVal (left = right)
             | other -> raise <| ArgumentAssertionException("(= int int)", toStr other)
 
     let (NonMacro funcPrint) = 
         fun args ->
             for arg in args do
-                printfn ">>> %A" (maybeForce arg)
+                printfn ">>> %A" (force arg)
 
-            NothingValue
+            NothingVal
 
     let defaultScope = 
         Map.ofList <| [
             // basic values
-            "true", BooleanValue true;
-            "false", BooleanValue false;
-            "=", FunctionValue funcEquals;
+            "true", BooleanVal true;
+            "false", BooleanVal false;
+            "=", FunctionVal funcEquals;
 
             // arithmetic
-            "+", FunctionValue funcAdd;
-            "*", FunctionValue funcMul;
-            "-", FunctionValue funcSub;
+            "+", FunctionVal funcAdd;
+            "*", FunctionVal funcMul;
+            "-", FunctionVal funcSub;
 
             // core functions
-            "let", FunctionValue funcLet;
-            "if", FunctionValue funcIf;
-            "lambda", FunctionValue funcLambda;
+            "let", FunctionVal funcLet;
+            "if", FunctionVal funcIf;
+            "lambda", FunctionVal funcLambda;
 
             // etc
-            "print", FunctionValue funcPrint;
+            "print", FunctionVal funcPrint;
         ]
