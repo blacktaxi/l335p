@@ -56,7 +56,7 @@ module Reader =
         | _ -> raise <| ReaderException(sprintf "Couldn't read \"%s\"" input)
 
     /// Returns a sequence of Lexemes tokenized from string
-    let rec readAll input = 
+    let rec readAll input: Lexeme seq = 
         seq {
             if not (String.IsNullOrEmpty input) then 
                 match readOne input with

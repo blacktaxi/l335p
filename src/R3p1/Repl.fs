@@ -13,13 +13,13 @@ module Repl =
         let prompts = 
             Seq.takeWhile 
                 (fun x -> (x <> "quit")) 
-                (seq { while true do yield prompt() })
+                (Seq.initInfinite (fun _ -> prompt()))
+                //(seq { while true do yield prompt() })
 
         let evalAndPrint input =
             printfn "-> %A\n" (
                 input 
                 |> Reader.readAll 
-                |> List.ofSeq 
                 |> Parser.parseAll 
                 |> Seq.map (Runner.maybeForce << Runner.eval builtinScope)
             )
