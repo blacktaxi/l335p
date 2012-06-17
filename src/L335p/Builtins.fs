@@ -5,15 +5,13 @@ open Parser
 open Runner
 open Utils
 
-module Builtins =
+type ArgumentAssertionException(expected, actual) =
+    inherit AssertionException(expected, actual)
 
-    type ArgumentAssertionException(expected, actual) =
-        inherit AssertionException(expected, actual)
+module CoreFunctions =
 
     let funcLambda scope nodes =
-        match nodes with
-        | [ListVal parametersExpr; lambdaBody] ->
-
+        let makeLambda closure parametersExpr body =
             // Parameter name strings, from given lambda signature.
             let parameterNames = 
                 List.map 
@@ -28,7 +26,7 @@ module Builtins =
                 List.fold 
                     (fun currentScope (name, value) -> 
                         Map.add name value currentScope) 
-                    scope 
+                    closure 
                     (List.zip parameterNames parameterValues)
 
             // A scope where the lambda was defined. Not to confuse with the scope
@@ -44,10 +42,43 @@ module Builtins =
                 let args = List.map (lazyEval scope) nodes
 
                 // Add arguments to the scope.
-                let lambdaScope = withBoundParameters args lambdaClosure
+                let lambdaScope = withBoundParameters args closure
 
-                eval lambdaScope lambdaBody
-            |> FunctionVal
+                eval lambdaScope body
+
+        match nodes with
+        | [SymbolVal lambdaName; ListVal parametersExpr; lambdaBody] ->
+            // create a "ghost" value of this same binding.
+            // this is needed so the binding can refer to itself when it is
+            // evaluated. there is probably a better way to do this.
+            // TODO I think this doesn't really work :(
+            let realValue = ref None
+            let ghostValue =
+                lazy (
+                    match !realValue with 
+                    | Some v -> v 
+                    | None -> raise <| EvaluationException(sprintf "The value of %s can not be evaluated at this time." lambdaName)
+                ) |> DelayedVal
+                    
+            // create the actual lambda value
+            let theLambda = 
+                makeLambda 
+                    (Map.add lambdaName ghostValue scope) 
+                    parametersExpr 
+                    lambdaBody 
+                    |> FunctionVal
+
+            // change the previously defined reference to point to the
+            // lambda we've just created
+            realValue := Some theLambda
+
+            theLambda
+        | [ListVal parametersExpr; lambdaBody] ->
+            makeLambda 
+                scope 
+                parametersExpr 
+                lambdaBody 
+                |> FunctionVal
         | other -> raise <| ArgumentAssertionException("(lambda (p1 p2 ...) body)", toStr other)
 
     let funcIf scope (nodes: LeFunctionArg list) =
@@ -84,24 +115,8 @@ module Builtins =
 
                     match name with
                     | SymbolVal n ->
-                        // create a "ghost" value of this same binding.
-                        // this is needed so the binding can refer to itself when it is
-                        // evaluated. there is probably a better way to do this.
-                        // TODO I think this doesn't really work :(
-                        let realValue = ref None
-                        let ghostValue =
-                            lazy (
-                                match !realValue with 
-                                | Some v -> v 
-                                | None -> raise <| EvaluationException(sprintf "The value of %s is not known yet (not evaluated), and therefore can not be referenced." n)
-                            ) |> DelayedVal
-                    
-                        // don't force the binding value -- we don't know if we
-                        // need it yet.
-                        let value = eval (Map.add n ghostValue currentScope) valueExpr
-                        realValue := Some value
-
-                        Map.add n value currentScope
+                        // lazy eval because bindings should be lazy.
+                        Map.add n (lazyEval currentScope valueExpr) currentScope
                     | other -> raise <| ArgumentAssertionException("a reference", toStr other)
                 | other -> raise <| ArgumentAssertionException("(name value)", toStr other)
             
@@ -109,7 +124,16 @@ module Builtins =
 
             eval scopeWithBindings body
         | other -> raise <| ArgumentAssertionException("(let ((name value) ...) body)", toStr other)
-        
+
+    let all =
+        Map.ofList [
+            "let", funcLet;
+            "if", funcIf;
+            "lambda", funcLambda;
+        ]
+
+module ArithmeticFunctions =
+
     /// Wraps a function that takes InterpreterValues as args into InterpreterFunction.
     let nonMacro func = (fun scope nodes -> func (List.map (eval scope) nodes))
     let (|NonMacro|) func = (fun scope nodes -> func (List.map (eval scope) nodes))
@@ -135,6 +159,18 @@ module Builtins =
             | [left; right] ->
                 BooleanVal (left = right)
             | other -> raise <| ArgumentAssertionException("(= int int)", toStr other)
+    
+    let all =
+        Map.ofList [
+            "=", funcEquals;
+            "+", funcAdd;
+            "*", funcMul;
+            "-", funcSub;
+        ]
+    
+module IOFunctions =
+
+    let (|NonMacro|) func = (fun scope nodes -> func (List.map (eval scope) nodes))
 
     let (NonMacro funcPrint) = 
         fun args ->
@@ -143,23 +179,54 @@ module Builtins =
 
             NothingVal
 
-    let defaultScope = 
-        Map.ofList <| [
-            // basic values
-            "true", BooleanVal true;
-            "false", BooleanVal false;
-            "=", FunctionVal funcEquals;
-
-            // arithmetic
-            "+", FunctionVal funcAdd;
-            "*", FunctionVal funcMul;
-            "-", FunctionVal funcSub;
-
-            // core functions
-            "let", FunctionVal funcLet;
-            "if", FunctionVal funcIf;
-            "lambda", FunctionVal funcLambda;
-
-            // etc
-            "print", FunctionVal funcPrint;
+    let all =
+        Map.ofList [
+            "print", funcPrint;
         ]
+
+module ListFunctions =
+
+    let funcList scope nodes =
+        ListVal <| List.map (lazyEval scope) nodes
+    
+    let funcCons scope nodes =
+        match nodes with
+        | [head; tail] ->
+            match eval scope tail with
+            | ListVal l -> ListVal (eval scope head :: l)
+            | other -> raise <| ArgumentAssertionException("a list", toStr other)
+        | other -> raise <| ArgumentAssertionException("(cons value a-list)", toStr other)
+
+    let funcFirst scope nodes =
+        match nodes with
+        | [alist] ->
+            match eval scope alist with
+            | ListVal l -> List.head l
+            | other -> raise <| ArgumentAssertionException("a list", toStr other)
+        | other -> raise <| ArgumentAssertionException("(first a-list)", toStr other)
+    
+    let funcRest scope nodes =
+        match nodes with
+        | [alist] ->
+            match eval scope alist with
+            | ListVal l -> ListVal (List.tail l)
+            | other -> raise <| ArgumentAssertionException("a list", toStr other)
+        | other -> raise <| ArgumentAssertionException("(rest a-list)", toStr other)
+
+    let all = 
+        Map.ofList [
+            "list", funcList;
+            "cons", funcCons;
+            "first", funcFirst;
+            "rest", funcRest;
+        ]
+    
+module Builtins =
+        
+    let defaultScope =
+        Map.merge
+            (Map.map 
+                (fun _ v -> FunctionVal v)
+                (Map.merge Map.empty [CoreFunctions.all; ArithmeticFunctions.all; ListFunctions.all; IOFunctions.all]))
+            []
+            //Map(["true", BooleanVal true; "false", BooleanVal false;])

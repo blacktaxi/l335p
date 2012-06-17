@@ -17,7 +17,7 @@ module MyConsole =
         let testStuff =
             (Map.ofList [
                 "t1", "(+ 2 2)";                
-                "fac", "(let ((fac (lambda (x) (if (= x 1) 1 (* (fac (- x 1)) x))))) fac)";
+                "fac", "(let ((fac (lambda fac (x) (if (= x 1) 1 (* (fac (- x 1)) x))))) fac)";
             ]) |> Map.map (fun k v -> evalSingleExpr Builtins.defaultScope v) 
         
         Repl.startREPL (Map.update Builtins.defaultScope testStuff)
