@@ -39,9 +39,9 @@
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildBinPath)\Microsoft.Build.Tasks.v4.0.dll')" />
   <ItemGroup>
     <Compile Include="Utils.fs" />
-    <Compile Include="Reader.fs" />
     <Compile Include="Runner.fs" />
-    <Compile Include="Parser.fs" />
+    <Compile Include="Lexer.fs" />
+    <Compile Include="Reader.fs" />
     <Compile Include="Builtins.fs" />
   </ItemGroup>
   <ItemGroup>

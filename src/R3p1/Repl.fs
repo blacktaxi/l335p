@@ -6,7 +6,7 @@ open L335p
 module Repl =
 
     let evalString scope input =
-        input |> Reader.readAll |> Parser.parseAll |> Seq.map (Runner.force << Runner.eval scope)
+        input |> Lexer.lexAll |> Reader.readAll |> Seq.map (Runner.force << Runner.eval scope)
     
     let startREPL builtinScope =
         let prompt () =

@@ -1,7 +1,7 @@
 ﻿namespace L335p
 
 open System
-open Parser
+open Reader
 open Runner
 open Utils
 
