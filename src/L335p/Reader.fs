@@ -13,6 +13,7 @@ module Reader =
         //| UnquoteSplicing
         | StringLiteral of string
         | IntegerLiteral of int
+        | BooleanLiteral of bool
         | Name of string
 
     type ReaderException(msg) = inherit Exception(msg)
@@ -45,6 +46,8 @@ module Reader =
             (p, r) -> Some (StringLiteral p), r
         | Re (genP "-?\d+") // Integer
             (p, r) -> Some (IntegerLiteral (Int32.Parse p)), r
+        | Re (genP "~t") (p, r) -> Some (BooleanLiteral true), r
+        | Re (genP "~f") (p, r) -> Some (BooleanLiteral false), r
 
         // Symbols
         | Re "^`(?<value>[^\r\n]*)`(?<rest>.*)$" // Quoted (a-la F#)

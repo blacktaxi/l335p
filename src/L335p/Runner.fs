@@ -70,9 +70,10 @@ module Runner =
             func scope args
 
         match node with
-        | DelayedVal v -> force node // awkward
-        | StringVal v -> node
-        | IntegerVal v -> node
+        | DelayedVal _ -> force node // awkward
+        | StringVal _ -> node
+        | IntegerVal _ -> node
+        | BooleanVal _ -> node
         | SymbolVal name -> dereference name scope
         | ListVal (expr::args) ->
             match eval scope expr with

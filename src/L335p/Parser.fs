@@ -25,6 +25,7 @@ module Parser =
         | Some CloseParen, rest -> raise <| ParserException(sprintf "Unexpected ')' at %A" lexemes)
         | Some (StringLiteral s), rest -> StringVal s, rest
         | Some (IntegerLiteral s), rest -> IntegerVal s, rest
+        | Some (BooleanLiteral b), rest -> BooleanVal b, rest
         | Some (Name s), rest -> SymbolVal s, rest
         | other -> raise <| ParserException(sprintf "Don't know how to parse %A" other)
 
