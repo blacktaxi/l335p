@@ -33,7 +33,7 @@ module Runner =
     | DelayedVal of Lazy<L3Value>
     | FunctionVal of LeFunction
     | NothingVal
-    | IntegerVal of int
+    | IntegerVal of int64
     | StringVal of string
     | BooleanVal of bool
     | ListVal of L3Value list

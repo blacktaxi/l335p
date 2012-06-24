@@ -12,7 +12,7 @@ module Lexer =
         //| Unquote
         //| UnquoteSplicing
         | StringLiteral of string
-        | IntegerLiteral of int
+        | IntegerLiteral of int64
         | BooleanLiteral of bool
         | Name of string
 
@@ -45,7 +45,7 @@ module Lexer =
         | Re "^\"(?<value>.*?)\"(?<rest>.*)$" // String
             (p, r) -> Some (StringLiteral p), r
         | Re (genP "-?\d+") // Integer
-            (p, r) -> Some (IntegerLiteral (Int32.Parse p)), r
+            (p, r) -> Some (IntegerLiteral (Int64.Parse p)), r
         | Re (genP "~t") (p, r) -> Some (BooleanLiteral true), r
         | Re (genP "~f") (p, r) -> Some (BooleanLiteral false), r
 
