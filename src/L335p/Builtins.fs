@@ -125,11 +125,17 @@ module CoreFunctions =
             eval scopeWithBindings body
         | other -> raise <| ArgumentAssertionException("(let ((name value) ...) body)", toStr other)
 
+    let funcDo scope nodes =
+        match nodes with
+        | [] -> NothingVal // NOTE do we throw an exception here instead?
+        | exprs -> List.fold (fun acc v -> eval scope v) NothingVal exprs
+    
     let all =
         Map.ofList [
             "let", funcLet;
             "if", funcIf;
             "lambda", funcLambda;
+            "do", funcDo;
         ]
 
 module ArithmeticFunctions =
@@ -179,9 +185,20 @@ module IOFunctions =
 
             NothingVal
 
+    let funcBench scope nodes =
+        match nodes with
+        | [body] ->
+            let stopWatch = System.Diagnostics.Stopwatch.StartNew()
+            let result = eval scope body
+            stopWatch.Stop()
+
+            ListVal [IntegerVal stopWatch.ElapsedMilliseconds; result]
+        | other -> raise <| ArgumentAssertionException("(bench body)", toStr other)
+
     let all =
         Map.ofList [
             "print", funcPrint;
+            "bench", funcBench;
         ]
 
 module ListFunctions =
