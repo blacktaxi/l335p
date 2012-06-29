@@ -1,14 +1,6 @@
 l335p
 =====
 
-A Lisp-like interpreter.
+A Lisp-like interpreter. I'm an F# novice and this a project I'm doing for learning. 
 
-TODO:
-* CLI
-* ability to run programs from external files
-* builtins are a mess, need to refactor that. probably put all funcs in static types which extend the base "namespace" type.
-* TCO
-* multi-line strings can't be lexed!
-* add integration tests; some unit tests, but low on priority
-* floating point arithmetic
-* add context information to syntax nodes (like row/col position, etc.)
+The goal is to have a minimalistic but still usable (in some obscure scenario) Lisp. I think it would be cool to implement something up ot the R5RS spec, but more likely I won't go that far and this Lisp will be even smaller.
