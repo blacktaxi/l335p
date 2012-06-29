@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "L335p", "L335p\L335p.fsproj", "{56476566-5306-4065-8876-F3EE306449F5}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Lang", "Lang\Lang.fsproj", "{56476566-5306-4065-8876-F3EE306449F5}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "R3p1", "R3p1\R3p1.fsproj", "{24DCBD56-A9C8-47A9-9172-6C267C33210D}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Interpreter", "Interpreter\Interpreter.fsproj", "{24DCBD56-A9C8-47A9-9172-6C267C33210D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
